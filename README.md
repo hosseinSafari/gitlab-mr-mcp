@@ -38,7 +38,7 @@ The server automatically handles large merge requests by providing smart summari
 1. **Clone the repository**
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/hosseinSafari/gitlab-mr-mcp.git
 cd gitlab-mr-mcp
 ```
 
