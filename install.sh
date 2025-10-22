@@ -164,6 +164,15 @@ echo -e "${BLUE}Step 4: Installing Python Dependencies${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
+# Temporarily deactivate any virtual environment to find system Python
+if [ -n "$VIRTUAL_ENV" ]; then
+    echo -e "${YELLOW}⚠${NC}  Detected active virtual environment, using system Python instead"
+    SAVED_VIRTUAL_ENV="$VIRTUAL_ENV"
+    unset VIRTUAL_ENV
+    # Reset PATH to remove venv
+    export PATH=$(echo $PATH | tr ':' '\n' | grep -v "$SAVED_VIRTUAL_ENV" | tr '\n' ':' | sed 's/:$//')
+fi
+
 # Check if Python is available
 if ! command -v python3 &> /dev/null && ! command -v python &> /dev/null; then
     echo -e "${RED}✗ Error: Python is not installed${NC}"
@@ -183,6 +192,7 @@ if $PYTHON_CMD -m pip install -e . > /tmp/gitlab-plugin-install.log 2>&1; then
 else
     echo -e "${RED}✗ Error: Failed to install Python dependencies${NC}"
     echo "Check /tmp/gitlab-plugin-install.log for details"
+    cat /tmp/gitlab-plugin-install.log
     exit 1
 fi
 
