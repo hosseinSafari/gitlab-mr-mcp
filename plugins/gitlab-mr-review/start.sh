@@ -30,10 +30,10 @@ if [ ! -d "$VENV_PATH" ]; then
     # Activate and install dependencies
     source "$(conda info --base)/etc/profile.d/conda.sh"
     conda activate "$VENV_PATH"
-    
-    cd "$SCRIPT_DIR/server"
-    pip install -e . >&2
-    
+
+    # Install dependencies using the venv's pip
+    "$VENV_PATH/bin/python" -m pip install -e "$SCRIPT_DIR/server" >&2
+
     conda deactivate
     
     echo "Installation complete!" >&2
