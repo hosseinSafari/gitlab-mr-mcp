@@ -1,203 +1,255 @@
-from typing import Any
+"""GitLab MCP Server for Merge Request Analysis."""
+
+from typing import Any, Optional
 import httpx
 import os
 import json
-import urllib.parse
+import logging
 from mcp.server.fastmcp import FastMCP
 
-# Initialize FastMCP server
-mcp = FastMCP("gitlab")
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Constants
-GITLAB_API_BASE = os.getenv("GITLAB_API_URL")
+# Configuration constants
+HTTP_TIMEOUT = 30.0
+PROJECTS_PER_PAGE = 100
 
-async def make_gitlab_request(url: str) -> dict[str, Any] | None:
-    """Make a request to the GITLAB API with proper error handling."""
+
+def validate_config() -> tuple[str, str]:
+    """Validate and return GitLab configuration from environment."""
+    api_url = os.getenv("GITLAB_API_URL")
     token = os.getenv("GITLAB_PERSONAL_ACCESS_TOKEN")
+
+    if not api_url:
+        raise ValueError(
+            "GITLAB_API_URL environment variable is not set. "
+            "Set it to your GitLab API URL (e.g., https://gitlab.com/api/v4)"
+        )
+
     if not token:
-        raise ValueError("GITLAB_PERSONAL_ACCESS_TOKEN environment variable is not set")
-    if not GITLAB_API_BASE:
-        raise ValueError("GITLAB_API_URL environment variable is not set")
-    
-    headers = {
-        "PRIVATE-TOKEN": token
-    }
-    async with httpx.AsyncClient() as client:
+        raise ValueError(
+            "GITLAB_PERSONAL_ACCESS_TOKEN environment variable is not set. "
+            "Provide a valid GitLab personal access token with 'read_api' scope."
+        )
+
+    return api_url, token
+
+
+class GitLabClient:
+    """Async HTTP client for GitLab API with connection pooling."""
+
+    def __init__(self, api_url: str, token: str):
+        self.api_url = api_url
+        self._client: Optional[httpx.AsyncClient] = None
+        self._headers = {"PRIVATE-TOKEN": token}
+
+    async def __aenter__(self):
+        self._client = httpx.AsyncClient(headers=self._headers, timeout=HTTP_TIMEOUT)
+        return self
+
+    async def __aexit__(self, _exc_type, _exc_val, _exc_tb):
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+
+    async def request(self, url: str) -> dict[str, Any]:
+        """Make API request with error handling."""
+        if not self._client:
+            raise RuntimeError("Client not initialized. Use async context manager.")
+
         try:
-            response = await client.get(url, headers=headers, timeout=30.0)
+            response = await self._client.get(url)
             response.raise_for_status()
             return response.json()
-        except Exception:
-            return None
+        except httpx.HTTPStatusError as e:
+            raise RuntimeError(
+                f"GitLab API error {e.response.status_code}: {e.response.reason_phrase}"
+            ) from e
+        except httpx.RequestError as e:
+            raise RuntimeError(f"Failed to connect to GitLab: {str(e)}") from e
+
+
+# Initialize MCP server and config
+mcp = FastMCP("gitlab")
+
+try:
+    API_URL, TOKEN = validate_config()
+    logger.info(f"Configuration loaded: {API_URL}")
+except ValueError as e:
+    logger.error(f"Configuration error: {e}")
+    API_URL, TOKEN = None, None
+
 
 @mcp.tool()
 async def get_projects() -> str:
-    """Get projects from GitLab."""
-    url = f"{GITLAB_API_BASE}/projects?simple=true&per_page=100"
-    data = await make_gitlab_request(url)
+    """Get all accessible GitLab projects."""
+    if not API_URL or not TOKEN:
+        return "Error: Server not configured. Set GITLAB_API_URL and GITLAB_PERSONAL_ACCESS_TOKEN."
 
-    if not data:
-        return "Unable to fetch projects."
+    try:
+        async with GitLabClient(API_URL, TOKEN) as client:
+            url = f"{API_URL}/projects?simple=true&per_page={PROJECTS_PER_PAGE}"
+            data = await client.request(url)
 
-    projects = data if isinstance(data, list) else data.get("projects", [])
+            # Handle response format variations
+            projects = data if isinstance(data, list) else data.get("projects", [])
 
-    if not projects:
-        return "No projects found."
+            if not projects:
+                return "No projects found."
 
-    lines = []
-    for project in projects:
-        project_id = project.get("id")
-        project_name = project.get("name") or project.get("name_with_namespace") or "Unnamed project"
-        lines.append(f"{project_name}, {project_id}")
-    
-    return "\n".join(lines)
+            lines = []
+            for p in projects:
+                name = p.get("name") or p.get("name_with_namespace") or "Unnamed"
+                lines.append(f"{name}, {p.get('id')}")
 
+            result = "\n".join(lines)
 
-# Configuration for trimming
-MAX_SERIALIZED_BYTES = 200_000   # rough limit on JSON bytes returned by the tool (adjust to fit mcp limits)
-MAX_FILES_IN_FULL_RETURN = 50    # if more files changed than this, return summary instead
-TOP_N_FILES = 20                 # show top N files in the summary
+            if len(projects) >= PROJECTS_PER_PAGE:
+                result += f"\n\nNote: Showing first {PROJECTS_PER_PAGE} projects."
+
+            logger.info(f"Retrieved {len(projects)} projects")
+            return result
+
+    except Exception as e:
+        logger.error(f"get_projects failed: {e}")
+        return f"Error: {str(e)}"
 
 
 @mcp.tool()
 async def merge_request_changes(project_id: int, merge_request_id: int) -> str:
-    """Get merge request changes from GitLab, but return a compact summary when large.
-
-    Returns:
-      - small summary (title, author, web_url, number of changed files, top N files)
-      - instructions for fetching full diff for a specific file: use tool `merge_request_file_diff`
     """
-    # Use numeric project id. If you ever pass a namespace, encode it:
-    project_encoded = urllib.parse.quote_plus(str(project_id))
-    url = f"{GITLAB_API_BASE}/projects/{project_encoded}/merge_requests/{merge_request_id}/changes"
-    data = await make_gitlab_request(url)
+    Get list of changed files in a merge request.
 
-    if not data:
-        return "Unable to fetch merge request changes."
+    Returns a simple list of files with indices for use with merge_request_file_diff.
+    Args:
+        project_id: GitLab project ID (numeric)
+        merge_request_id: MR IID (e.g., !123 -> 123)
+    """
+    if not API_URL or not TOKEN:
+        return "Error: Server not configured. Set GITLAB_API_URL and GITLAB_PERSONAL_ACCESS_TOKEN."
 
-    # The endpoint returns a dict with keys like title, description, changes (list)
-    changes = data.get("changes", [])
-    mr_title = data.get("title", "<no title>")
-    mr_author = data.get("author", {}).get("name", "<unknown>")
-    mr_web_url = data.get("web_url", "")
-    created_at = data.get("created_at", "")
-    updated_at = data.get("updated_at", "")
+    try:
+        async with GitLabClient(API_URL, TOKEN) as client:
+            url = f"{API_URL}/projects/{project_id}/merge_requests/{merge_request_id}/changes"
+            data = await client.request(url)
 
-    # Quick check: if changes is empty, maybe endpoint returned something else
-    if not isinstance(changes, list):
-        return "Unexpected response structure from GitLab."
+            changes = data.get("changes", [])
 
-    # Prepare file summaries (path, additions/deletions if present, and size of diff text)
-    file_summaries = []
-    for idx, ch in enumerate(changes):
-        old_path = ch.get("old_path") or ch.get("old_path")
-        new_path = ch.get("new_path") or ch.get("new_path")
-        path = new_path or old_path or f"<unknown path {idx}>"
-        # GitLab changes often include 'diff' field, and sometimes additions/deletions (depending on API)
-        diff_text = ch.get("diff") or ""
-        additions = ch.get("additions")
-        deletions = ch.get("deletions")
-        # approximate number of changed lines in this file
-        approx_change_size = len(diff_text)
-        file_summaries.append({
-            "index": idx,
-            "path": path,
-            "additions": additions,
-            "deletions": deletions,
-            "diff_bytes": approx_change_size
-        })
+            if not isinstance(changes, list):
+                return "Error: Unexpected response structure from GitLab."
 
-    total_files = len(file_summaries)
-    total_diff_bytes = sum(f["diff_bytes"] for f in file_summaries)
+            if not changes:
+                return "This merge request has no file changes."
 
-    # If response is small enough, return the full JSON (pretty)
-    serialized_full = json.dumps(data, indent=2)
-    if len(serialized_full.encode("utf-8")) <= MAX_SERIALIZED_BYTES and total_files <= MAX_FILES_IN_FULL_RETURN:
-        return serialized_full
+            # Build simple file list
+            title = data.get("title", "No title")
+            lines = [
+                f"Merge Request: {title}",
+                f"Files changed: {len(changes)}",
+                ""
+            ]
 
-    # Otherwise, produce a compact summary and instructions for retrieval of specific file diffs
-    # Sort files by diff size desc to show biggest changes first
-    file_summaries.sort(key=lambda x: x["diff_bytes"], reverse=True)
+            for idx, change in enumerate(changes):
+                old_path = change.get("old_path")
+                new_path = change.get("new_path")
+                new_file = change.get("new_file", False)
+                deleted_file = change.get("deleted_file", False)
+                renamed_file = change.get("renamed_file", False)
 
-    lines = []
-    lines.append(f"MR {merge_request_id} — {mr_title}")
-    lines.append(f"Author: {mr_author}")
-    if mr_web_url:
-        lines.append(f"URL: {mr_web_url}")
-    if created_at:
-        lines.append(f"Created at: {created_at}")
-    if updated_at:
-        lines.append(f"Updated at: {updated_at}")
-    lines.append(f"Files changed: {total_files}")
-    lines.append(f"Approx. total diff bytes: {total_diff_bytes:,}")
-    lines.append("")
-    lines.append(f"Top {min(TOP_N_FILES, total_files)} changed files (index, path, approx diff bytes, additions, deletions):")
-    for fs in file_summaries[:TOP_N_FILES]:
-        lines.append(f"{fs['index']}: {fs['path']}  ({fs['diff_bytes']} bytes, +{fs.get('additions') or '?'} -{fs.get('deletions') or '?'})")
+                # Determine status and display
+                if renamed_file:
+                    display = f"{old_path} → {new_path} (renamed)"
+                elif new_file:
+                    display = f"{new_path} (new)"
+                elif deleted_file:
+                    display = f"{old_path} (deleted)"
+                else:
+                    display = f"{new_path or old_path} (modified)"
 
-    lines.append("")
-    lines.append("Notes:")
-    lines.append("- The full MR changes were too large to return in one tool response.")
-    lines.append("- To fetch the full diff for a specific file, call the MCP tool `merge_request_file_diff` with the project_id, merge_request_id, and either `file_index` (the index shown) or the `file_path`.")
-    lines.append("- Example: merge_request_file_diff(project_id=24, merge_request_id=871, file_index=3)")
+                lines.append(f"{idx}: {display}")
 
-    return "\n".join(lines)
+            lines.append("")
+            lines.append("Use merge_request_file_diff(project_id, merge_request_id, file_index=N) to see the diff.")
+
+            logger.info(f"Returning file list for MR with {len(changes)} changes")
+            return "\n".join(lines)
+
+    except Exception as e:
+        logger.error(f"merge_request_changes failed: {e}")
+        return f"Error: {str(e)}"
 
 
 @mcp.tool()
-async def merge_request_file_diff(project_id: int, merge_request_id: int, file_index: int | None = None, file_path: str | None = None) -> str:
-    """Return the diff for a single changed file from the merge request changes payload.
-
-    Provide *either* file_index (0-based index shown in the summary) or file_path.
+async def merge_request_file_diff(
+    project_id: int,
+    merge_request_id: int,
+    file_index: Optional[int] = None,
+    file_path: Optional[str] = None
+) -> str:
     """
+    Get diff for a specific file in a merge request.
+
+    Provide either file_index (0-based index) or file_path.
+    """
+    if not API_URL or not TOKEN:
+        return "Error: Server not configured. Set GITLAB_API_URL and GITLAB_PERSONAL_ACCESS_TOKEN."
+
     if file_index is None and file_path is None:
-        return "You must provide either file_index or file_path."
+        return "Error: Provide either file_index or file_path parameter."
 
-    project_encoded = urllib.parse.quote_plus(str(project_id))
-    url = f"{GITLAB_API_BASE}/projects/{project_encoded}/merge_requests/{merge_request_id}/changes"
-    data = await make_gitlab_request(url)
-    if not data:
-        return "Unable to fetch merge request changes."
+    try:
+        async with GitLabClient(API_URL, TOKEN) as client:
+            url = f"{API_URL}/projects/{project_id}/merge_requests/{merge_request_id}/changes"
+            data = await client.request(url)
 
-    changes = data.get("changes", [])
-    if not isinstance(changes, list) or not changes:
-        return "No file changes present for this merge request."
+            changes = data.get("changes", [])
 
-    # Find the file entry
-    entry = None
-    if file_index is not None:
-        if not (0 <= file_index < len(changes)):
-            return f"file_index out of range (0..{len(changes)-1})"
-        entry = changes[file_index]
-    else:
-        # find by path (match new_path or old_path)
-        for ch in changes:
-            path = ch.get("new_path") or ch.get("old_path") or ""
-            if path == file_path:
-                entry = ch
-                break
-        if entry is None:
-            return f"No changed file found with path: {file_path}"
+            if not isinstance(changes, list) or not changes:
+                return "Error: No file changes in this merge request."
 
-    diff_text = entry.get("diff")
-    if not diff_text:
-        # sometimes the endpoint gives 'a_mode'/'b_mode' and no unified diff; return serialized entry
-        return json.dumps(entry, indent=2)
+            # Find the requested file
+            entry = None
 
-    # If the diff is still huge, return only head of diff and a suggestion
-    MAX_BYTES_FOR_SINGLE_DIFF = 150_000
-    diff_bytes = len(diff_text.encode("utf-8"))
-    if diff_bytes > MAX_BYTES_FOR_SINGLE_DIFF:
-        head = diff_text[:MAX_BYTES_FOR_SINGLE_DIFF]
-        tail_notice = f"\n\n--- diff truncated: {diff_bytes} bytes total. To inspect the rest, consider fetching from the repo directly or reducing the requested chunk. ---"
-        return head + tail_notice
+            if file_index is not None:
+                if 0 <= file_index < len(changes):
+                    entry = changes[file_index]
+                else:
+                    return f"Error: file_index {file_index} out of range (0-{len(changes)-1})"
+            else:
+                # Search by path
+                for change in changes:
+                    if change.get("new_path") == file_path or change.get("old_path") == file_path:
+                        entry = change
+                        break
 
-    return diff_text
+                if not entry:
+                    return f"Error: No file found with path: {file_path}"
+
+            diff_text = entry.get("diff")
+
+            if not diff_text:
+                # No diff available, return JSON
+                return json.dumps(entry, indent=2)
+
+            # Return full diff
+            display_path = entry.get("new_path") or entry.get("old_path") or "unknown"
+            logger.info(f"Returning diff for {display_path}")
+
+            return diff_text
+
+    except Exception as e:
+        logger.error(f"merge_request_file_diff failed: {e}")
+        return f"Error: {str(e)}"
 
 
 def main():
-    # Initialize and run the server
-    mcp.run(transport='stdio')    
+    """Run the MCP server."""
+    if not API_URL or not TOKEN:
+        logger.warning("Server starting without valid configuration.")
+
+    mcp.run(transport='stdio')
+
 
 if __name__ == "__main__":
     main()
