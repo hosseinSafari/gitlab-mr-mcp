@@ -1,8 +1,7 @@
 {
   "name": "gitlab-mr-review-marketplace",
   "owner": {
-    "name": "Amir Masoud Ahmadi",
-    "email": "ahmadi@example.com"
+    "name": "Amir Masoud Ahmadi, Hossein Safari"
   },
   "metadata": {
     "description": "GitLab merge request review tools and automation",
@@ -11,29 +10,7 @@
   "plugins": [
     {
       "name": "gitlab-mr-review",
-      "source": "./plugins/gitlab-mr-review",
-      "version": "0.1.0",
-      "description": "Comprehensive GitLab merge request review using MCP tools for automated code analysis",
-      "author": {
-        "name": "Amir Masoud Ahmadi",
-        "email": "ahmadi@example.com"
-      },
-      "homepage": "https://github.com/hosseinSafari/gitlab-mr-mcp",
-      "repository": "https://github.com/hosseinSafari/gitlab-mr-mcp",
-      "license": "MIT",
-      "keywords": [
-        "gitlab",
-        "merge-request",
-        "code-review",
-        "mcp",
-        "automation"
-      ],
-      "category": "code-review",
-      "tags": ["gitlab", "review", "automation", "mcp"],
-      "strict": true,
-      "commands": [
-        "./commands/review-gitlab-mr.md"
-      ]
+      "source": "./plugins/gitlab-mr-review"
     }
   ]
 }

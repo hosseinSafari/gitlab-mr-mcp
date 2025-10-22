@@ -12,14 +12,30 @@ A Claude Code plugin that provides comprehensive automated code review for GitLa
 
 ## Prerequisites
 
-- **Python 3.10+**
+- **Conda** (Anaconda or Miniconda)
 - **GitLab Account** with API access
 - **GitLab Personal Access Token** with `read_api` scope
 - **Claude Code** (this plugin is installed within Claude Code)
 
+> **Note**: Python 3.10 will be automatically installed in a conda virtual environment during plugin installation.
+
 ## Installation
 
-### 1. Get Your GitLab Personal Access Token
+### Automatic Installation
+
+When you install this plugin from the Claude marketplace, it will automatically:
+
+1. ✅ Create a conda virtual environment with Python 3.10
+2. ✅ Install all required dependencies (`httpx`, `mcp`)
+3. ✅ Configure the MCP server to use the isolated environment
+
+The installation script (`install.sh`) runs automatically and ensures a clean, isolated Python environment for the plugin.
+
+### Manual Setup
+
+If you need to manually install or reinstall:
+
+#### 1. Get Your GitLab Personal Access Token
 
 1. Log in to your GitLab account (gitlab.com or self-hosted)
 2. Navigate to **Settings** → **Access Tokens** → **Personal Access Tokens**
@@ -31,7 +47,7 @@ A Claude Code plugin that provides comprehensive automated code review for GitLa
 5. Click **Create personal access token**
 6. **Copy the token immediately** (you won't see it again)
 
-### 2. Set Environment Variables
+#### 2. Set Environment Variables
 
 Set these environment variables in your shell profile (`~/.zshrc`, `~/.bashrc`, etc.):
 
@@ -50,21 +66,21 @@ export GITLAB_API_URL="https://your-gitlab-instance.com/api/v4"
 source ~/.zshrc  # or ~/.bashrc
 ```
 
-### 3. Install Python Dependencies
+#### 3. Run Installation Script
 
 From the plugin directory:
 
 ```bash
-cd .claude/plugins/gitlab-mr-review/server
-pip install -e .
+cd ~/.claude/plugins/gitlab-mr-review
+./install.sh
 ```
 
-Or install dependencies directly:
-```bash
-pip install httpx>=0.28.1 'mcp[cli]>=1.2.0'
-```
+This will:
+- Create a conda virtual environment at `server/.venv` with Python 3.10
+- Install all required dependencies
+- Verify the installation
 
-### 4. Restart Claude Code
+#### 4. Restart Claude Code
 
 The plugin will be automatically loaded when Claude Code starts.
 
@@ -240,6 +256,26 @@ PROJECTS_PER_PAGE = 100      # Number of projects retrieved per request
 ```
 
 ## Troubleshooting
+
+### "conda: command not found" during installation
+
+**Cause**: Conda is not installed or not in PATH
+
+**Solution**:
+1. Install Miniconda: https://docs.conda.io/en/latest/miniconda.html
+2. Or install Anaconda: https://www.anaconda.com/download
+3. Restart your terminal after installation
+4. Verify: `conda --version`
+
+### Virtual Environment Not Created
+
+**Cause**: Installation script failed or wasn't run
+
+**Solution**:
+1. Navigate to plugin directory: `cd ~/.claude/plugins/gitlab-mr-review`
+2. Run installation manually: `./install.sh`
+3. Check for errors in the output
+4. Ensure conda is properly installed
 
 ### "Error: Server not configured"
 

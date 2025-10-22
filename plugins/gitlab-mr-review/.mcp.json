@@ -1,6 +1,6 @@
 {
   "gitlab": {
-    "command": "python",
+    "command": "${CLAUDE_PLUGIN_ROOT}/server/.venv/bin/python",
     "args": [
       "${CLAUDE_PLUGIN_ROOT}/server/gitlab.py"
     ],

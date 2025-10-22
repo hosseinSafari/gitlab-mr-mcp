@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "description": "Comprehensive GitLab merge request review using MCP tools for automated code analysis",
   "author": {
-    "name": "Amir Masoud Ahmadi",
-    "email": "ahmadi@example.com"
+    "name": "Amir Masoud Ahmadi, Hossein Safari"
   },
   "homepage": "https://github.com/hosseinSafari/gitlab-mr-mcp",
   "repository": "https://github.com/hosseinSafari/gitlab-mr-mcp",
@@ -16,6 +15,7 @@
     "mcp",
     "automation"
   ],
-  "commands": "./commands",
-  "mcpServers": "./.mcp.json"
+  "install": "./install.sh",
+  "mcpServers": "./.mcp.json",
+  "commands": "./commands"
 }
