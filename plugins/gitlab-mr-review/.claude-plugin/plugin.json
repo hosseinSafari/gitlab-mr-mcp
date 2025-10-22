@@ -15,6 +15,6 @@
     "mcp",
     "automation"
   ],
-  "mcpServers": "../.mcp.json",
-  "commands": "../commands"
+  "mcpServers": "./.mcp.json",
+  "commands": "./commands"
 }

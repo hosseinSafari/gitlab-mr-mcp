@@ -1,8 +1,13 @@
 {
   "gitlab": {
-    "command": "${CLAUDE_PLUGIN_ROOT}/start.sh",
+    "command": "/bin/bash",
     "args": [
+      "${CLAUDE_PLUGIN_ROOT}/start.sh",
       "${CLAUDE_PLUGIN_ROOT}/server/gitlab.py"
-    ]
+    ],
+    "env": {
+      "GITLAB_PERSONAL_ACCESS_TOKEN": "${GITLAB_PERSONAL_ACCESS_TOKEN}",
+      "GITLAB_API_URL": "${GITLAB_API_URL}"
+    }
   }
 }
