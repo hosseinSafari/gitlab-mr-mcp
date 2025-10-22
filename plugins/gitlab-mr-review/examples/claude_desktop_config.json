@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "gitlab": {
+      "command": "python",
+      "args": [
+        "/path/to/.claude/plugins/gitlab-mr-review/server/gitlab.py"
+      ],
+      "env": {
+        "GITLAB_PERSONAL_ACCESS_TOKEN": "your-gitlab-token-here",
+        "GITLAB_API_URL": "https://gitlab.com/api/v4"
+      }
+    }
+  }
+}

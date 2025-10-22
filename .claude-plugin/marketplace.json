@@ -1,0 +1,16 @@
+{
+  "name": "gitlab-mr-review-marketplace",
+  "owner": {
+    "name": "Amir Masoud Ahmadi, Hossein Safari"
+  },
+  "metadata": {
+    "description": "GitLab merge request review tools and automation",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "gitlab-mr-review",
+      "source": "./plugins/gitlab-mr-review"
+    }
+  ]
+}
