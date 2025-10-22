@@ -16,26 +16,54 @@ A Claude Code plugin that provides comprehensive automated code review for GitLa
 
 ## Quick Start
 
-### Installation
+### Automated Installation (Recommended)
 
-Install the plugin directly into Claude Code:
+The easiest way to install - just run the installation script:
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/hosseinSafari/gitlab-mr-mcp.git
 cd gitlab-mr-mcp
 
-# 2. Copy plugin to Claude Code plugins directory
+# 2. Run the installation script
+./install.sh
+```
+
+The script will:
+- ✅ Prompt you for your GitLab Personal Access Token
+- ✅ Automatically configure environment variables
+- ✅ Copy the plugin to Claude Code
+- ✅ Install Python dependencies
+- ✅ Verify the installation
+
+**After installation:**
+1. Restart your terminal
+2. Restart Claude Code
+3. Type `/help` to see the `/review-gitlab-mr` command
+
+### Manual Installation
+
+If you prefer to install manually:
+
+<details>
+<summary>Click to expand manual installation steps</summary>
+
+#### 1. Clone and Copy Plugin
+
+```bash
+# Clone the repository
+git clone https://github.com/hosseinSafari/gitlab-mr-mcp.git
+cd gitlab-mr-mcp
+
+# Copy plugin to Claude Code plugins directory
 cp -r plugins/gitlab-mr-review ~/.claude/plugins/
 
-# 3. Install Python dependencies
+# Install Python dependencies
 cd ~/.claude/plugins/gitlab-mr-review/server
 pip install -e .
 ```
 
-### Configuration
-
-#### 1. Get Your GitLab Personal Access Token
+#### 2. Get Your GitLab Personal Access Token
 
 1. Log in to GitLab (gitlab.com or your self-hosted instance)
 2. Go to **Settings** → **Access Tokens** → **Personal Access Tokens**
@@ -47,7 +75,7 @@ pip install -e .
 5. Click **Create personal access token**
 6. **Copy the token immediately** (you won't see it again!)
 
-#### 2. Set Environment Variables
+#### 3. Set Environment Variables
 
 Add to your shell configuration (`~/.zshrc` or `~/.bashrc`):
 
@@ -67,9 +95,11 @@ Apply the changes:
 source ~/.zshrc  # or source ~/.bashrc
 ```
 
-#### 3. Restart Claude Code
+#### 4. Restart Claude Code
 
 Completely quit and relaunch Claude Code for the plugin to load.
+
+</details>
 
 ### Usage
 
