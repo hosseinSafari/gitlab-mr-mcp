@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "gitlab-mr-review",
-      "source": "./.claude/plugins/gitlab-mr-review",
+      "source": "./plugins/gitlab-mr-review",
       "version": "0.1.0",
       "description": "Comprehensive GitLab merge request review using MCP tools for automated code analysis",
       "author": {
@@ -29,7 +29,11 @@
         "automation"
       ],
       "category": "code-review",
-      "tags": ["gitlab", "review", "automation", "mcp"]
+      "tags": ["gitlab", "review", "automation", "mcp"],
+      "strict": true,
+      "commands": [
+        "./commands/review-gitlab-mr.md"
+      ]
     }
   ]
 }

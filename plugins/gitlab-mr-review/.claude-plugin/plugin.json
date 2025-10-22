@@ -15,5 +15,7 @@
     "code-review",
     "mcp",
     "automation"
-  ]
+  ],
+  "commands": "./commands",
+  "mcpServers": "./.mcp.json"
 }
