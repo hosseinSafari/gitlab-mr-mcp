@@ -16,8 +16,11 @@ echo "║   For Claude Code                                          ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Detect shell
+# Detect shell and config file
 SHELL_CONFIG=""
+SHELL_NAME=""
+
+# First, try to detect by shell version
 if [ -n "$ZSH_VERSION" ]; then
     SHELL_CONFIG="$HOME/.zshrc"
     SHELL_NAME="zsh"
@@ -28,10 +31,34 @@ elif [ -n "$BASH_VERSION" ]; then
         SHELL_CONFIG="$HOME/.bash_profile"
     fi
     SHELL_NAME="bash"
-else
-    echo -e "${YELLOW}Warning: Could not detect shell type. Defaulting to ~/.bashrc${NC}"
-    SHELL_CONFIG="$HOME/.bashrc"
-    SHELL_NAME="bash"
+fi
+
+# If no config found, check what files exist
+if [ -z "$SHELL_CONFIG" ]; then
+    if [ -f "$HOME/.zshrc" ]; then
+        SHELL_CONFIG="$HOME/.zshrc"
+        SHELL_NAME="zsh"
+    elif [ -f "$HOME/.bashrc" ]; then
+        SHELL_CONFIG="$HOME/.bashrc"
+        SHELL_NAME="bash"
+    elif [ -f "$HOME/.bash_profile" ]; then
+        SHELL_CONFIG="$HOME/.bash_profile"
+        SHELL_NAME="bash"
+    elif [ -f "$HOME/.profile" ]; then
+        SHELL_CONFIG="$HOME/.profile"
+        SHELL_NAME="bash"
+    else
+        # No config file exists, create one based on default shell
+        if [[ "$SHELL" == */zsh ]]; then
+            SHELL_CONFIG="$HOME/.zshrc"
+            SHELL_NAME="zsh"
+        else
+            SHELL_CONFIG="$HOME/.bashrc"
+            SHELL_NAME="bash"
+        fi
+        echo -e "${YELLOW}⚠${NC}  No shell config file found. Will create: ${SHELL_CONFIG}"
+        touch "$SHELL_CONFIG"
+    fi
 fi
 
 echo -e "${GREEN}✓${NC} Detected shell: ${SHELL_NAME}"
