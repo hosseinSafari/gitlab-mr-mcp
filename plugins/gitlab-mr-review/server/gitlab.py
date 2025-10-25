@@ -5,10 +5,15 @@ import httpx
 import os
 import json
 import logging
+import sys
 from mcp.server.fastmcp import FastMCP
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
+# Setup logging to stderr (stdout is reserved for JSON-RPC communication)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stderr
+)
 logger = logging.getLogger(__name__)
 
 # Configuration constants
