@@ -1,375 +1,286 @@
-# GitLab MR Review Plugin for Claude Code
+# GitLab MR Review MCP Server
 
-A Claude Code plugin that provides comprehensive automated code review for GitLab merge requests using MCP (Model Context Protocol) tools.
+A Model Context Protocol (MCP) server for reviewing GitLab merge requests using Claude Code and other MCP clients.
 
-[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-blue.svg)](https://claude.com/claude-code)
+## Overview
+
+This MCP server provides tools to interact with GitLab's API, enabling AI assistants to analyze merge requests, retrieve changed files, and inspect code diffs. It's designed to integrate seamlessly with Claude Code and other MCP-compatible clients for efficient code review workflows.
 
 ## Features
 
-- 🔍 **Automated Code Review**: Analyzes all files in a merge request for security, bugs, performance, and code quality issues
-- ⚡ **Parallel Processing**: Fetches and analyzes all file diffs in parallel for maximum efficiency
-- 🎯 **Severity-Based Reporting**: Categorizes issues as Critical, High, Medium, or Low priority
-- 📊 **Comprehensive Analysis**: Checks for 40+ issue patterns including SQL injection, XSS, race conditions, performance bottlenecks
-- 🚀 **Simple Usage**: Just use `/review-gitlab-mr <project_name> <mr_number>`
+- **Project Discovery**: List all accessible GitLab projects
+- **Merge Request Analysis**: Retrieve detailed information about merge request changes
+- **File Change Inspection**: View individual file diffs with support for:
+  - Modified files
+  - New files
+  - Deleted files
+  - Renamed files
+- **Flexible File Access**: Query files by index or path
+- **Async HTTP Client**: Efficient connection pooling for API requests
+- **Error Handling**: Comprehensive error handling with clear error messages
 
-## Quick Start
+## Available Tools
 
-### Automated Installation (Recommended)
+### `get_projects()`
+Retrieves all accessible GitLab projects for the authenticated user.
 
-The easiest way to install - just run the installation script:
+**Returns**: List of projects with names and IDs (up to 100 projects)
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/hosseinSafari/gitlab-mr-mcp.git
-cd gitlab-mr-mcp
-
-# 2. Run the installation script
-./install.sh
+**Example Output**:
+```
+my-awesome-project, 12345
+another-project, 67890
 ```
 
-The script will:
-- ✅ Prompt you for your GitLab Personal Access Token
-- ✅ Automatically configure environment variables
-- ✅ Copy the plugin to Claude Code
-- ✅ Install Python dependencies
-- ✅ Verify the installation
+### `merge_request_changes(project_id: int, merge_request_id: int)`
+Lists all changed files in a merge request with indexed file list.
 
-**After installation:**
-1. Restart your terminal
-2. Restart Claude Code
-3. Type `/help` to see the `/review-gitlab-mr` command
+**Parameters**:
+- `project_id`: GitLab project ID (numeric)
+- `merge_request_id`: Merge request IID (e.g., !123 → 123)
 
-### Manual Installation
+**Returns**: Formatted list of changed files with indices and status indicators
 
-If you prefer to install manually:
+**Example Output**:
+```
+Merge Request: Add user authentication
+Files changed: 5
 
-<details>
-<summary>Click to expand manual installation steps</summary>
+0: src/auth.py (new)
+1: src/models/user.py (modified)
+2: tests/test_auth.py (new)
+3: old_auth.py → src/legacy_auth.py (renamed)
+4: deprecated.py (deleted)
 
-#### 1. Clone and Copy Plugin
+Use merge_request_file_diff(project_id, merge_request_id, file_index=N) to see the diff.
+```
+
+### `merge_request_file_diff(project_id: int, merge_request_id: int, file_index: int = None, file_path: str = None)`
+Retrieves the diff for a specific file in a merge request.
+
+**Parameters**:
+- `project_id`: GitLab project ID (numeric)
+- `merge_request_id`: Merge request IID
+- `file_index`: 0-based index from `merge_request_changes()` (optional)
+- `file_path`: Full file path (optional)
+
+**Returns**: Unified diff format for the specified file
+
+**Note**: Provide either `file_index` or `file_path`, not both.
+
+## Installation
+
+### Prerequisites
+
+- Python 3.10 or higher
+- GitLab personal access token with `read_api` scope
+- Access to a GitLab instance (GitLab.com or self-hosted)
+
+### Using pip
 
 ```bash
-# Clone the repository
-git clone https://github.com/hosseinSafari/gitlab-mr-mcp.git
+pip install httpx mcp
+```
+
+### From Source
+
+```bash
+git clone https://github.com/yourusername/gitlab-mr-mcp.git
 cd gitlab-mr-mcp
-
-# Copy plugin to Claude Code plugins directory
-cp -r plugins/gitlab-mr-review ~/.claude/plugins/
-
-# Install Python dependencies
-cd ~/.claude/plugins/gitlab-mr-review/server
 pip install -e .
 ```
 
-#### 2. Get Your GitLab Personal Access Token
+## Configuration
 
-1. Log in to GitLab (gitlab.com or your self-hosted instance)
-2. Go to **Settings** → **Access Tokens** → **Personal Access Tokens**
-3. Click **Add new token**
-4. Configure:
-   - **Token name**: "Claude Code MR Review"
-   - **Scopes**: Check **`read_api`** (minimum required)
-   - **Expiration**: Set according to your policy
-5. Click **Create personal access token**
-6. **Copy the token immediately** (you won't see it again!)
+### Environment Variables
 
-#### 3. Set Environment Variables
+The server requires two environment variables:
 
-Add to your shell configuration (`~/.zshrc` or `~/.bashrc`):
+| Variable | Description | Example | Required |
+|----------|-------------|---------|----------|
+| `GITLAB_API_URL` | GitLab API endpoint URL | `https://gitlab.com/api/v4` | Yes |
+| `GITLAB_PERSONAL_ACCESS_TOKEN` | GitLab personal access token | `glpat-xxxxxxxxxxxx` | Yes |
+
+### Creating a GitLab Personal Access Token
+
+1. Log in to your GitLab instance
+2. Go to **Settings** → **Access Tokens**
+3. Create a new token with the `read_api` scope
+4. Copy the token (you won't be able to see it again)
+
+## Usage
+
+### With Claude Code
+
+Add the following configuration to your Claude Code settings:
+
+**For Claude Desktop** (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "gitlab": {
+      "command": "python",
+      "args": [
+        "/path/to/gitlab-mr-mcp/gitlab.py"
+      ],
+      "env": {
+        "GITLAB_PERSONAL_ACCESS_TOKEN": "your-gitlab-token-here",
+        "GITLAB_API_URL": "https://gitlab.com/api/v4"
+      }
+    }
+  }
+}
+```
+
+**For Claude Code Plugin** (`.mcp.json`):
+```json
+{
+  "gitlab": {
+    "command": "${CLAUDE_PLUGIN_ROOT}/start.sh",
+    "args": [
+      "${CLAUDE_PLUGIN_ROOT}/server/gitlab.py"
+    ],
+    "env": {
+      "GITLAB_PERSONAL_ACCESS_TOKEN": "${GITLAB_PERSONAL_ACCESS_TOKEN}",
+      "GITLAB_API_URL": "${GITLAB_API_URL}"
+    }
+  }
+}
+```
+
+### Standalone Execution
 
 ```bash
-# GitLab MCP Configuration
-export GITLAB_PERSONAL_ACCESS_TOKEN="glpat-your-token-here"
 export GITLAB_API_URL="https://gitlab.com/api/v4"
-```
+export GITLAB_PERSONAL_ACCESS_TOKEN="your-token-here"
 
-For self-hosted GitLab:
-```bash
-export GITLAB_API_URL="https://your-gitlab-instance.com/api/v4"
-```
-
-Apply the changes:
-```bash
-source ~/.zshrc  # or source ~/.bashrc
-```
-
-#### 4. Restart Claude Code
-
-Completely quit and relaunch Claude Code for the plugin to load.
-
-</details>
-
-### Usage
-
-Review any merge request with a simple slash command:
-
-```bash
-/review-gitlab-mr project-name mr-number
-```
-
-**Examples:**
-```bash
-/review-gitlab-mr gitlab-mr-mcp 42
-/review-gitlab-mr my-team/backend-api 123
-```
-
-The plugin will:
-1. Find your project by name
-2. Retrieve all changed files
-3. Fetch all diffs in parallel
-4. Analyze for security, bugs, performance, and quality issues
-5. Generate a comprehensive severity-categorized report
-
-## What Gets Analyzed
-
-### 🔴 Critical Issues (Security)
-- SQL injection vulnerabilities
-- Cross-Site Scripting (XSS)
-- Command injection
-- Hardcoded secrets/tokens/passwords
-- Authentication bypasses
-- Path traversal vulnerabilities
-- Insecure deserialization
-- And more...
-
-### 🟠 High Priority Issues (Bugs)
-- Null reference errors
-- Race conditions
-- Resource leaks
-- Incorrect error handling
-- Logic errors
-- Type mismatches
-- Off-by-one errors
-- And more...
-
-### 🟡 Medium Priority Issues (Performance)
-- N+1 query problems
-- Inefficient algorithms
-- Missing database indices
-- Memory leaks
-- Unnecessary synchronous operations
-- Missing pagination
-- And more...
-
-### 🟢 Low Priority Issues (Code Quality)
-- Code duplication
-- High complexity
-- Poor naming conventions
-- Magic numbers
-- Inconsistent style
-- Missing documentation
-- And more...
-
-## Example Report
-
-```markdown
-# Merge Request Review: Add user authentication
-
-**Project**: my-app
-**MR Number**: 42
-**Files Analyzed**: 8 files
-**Total Issues Found**: 12 issues
-
----
-
-## 🔴 Critical Issues
-
-**File**: src/auth/login.py:45
-**Issue**: Potential SQL injection vulnerability
-**Impact**: User input directly concatenated into SQL query
-**Recommendation**: Use parameterized queries or ORM
-
----
-
-## 🟠 High Priority Issues
-
-**File**: src/utils/validator.py:23
-**Issue**: Missing null check before string operation
-**Impact**: Potential NullReferenceError at runtime
-**Recommendation**: Add null validation before accessing properties
-
----
-
-## ✅ Positive Observations
-
-- Excellent test coverage for authentication flow
-- Clear documentation in README
-- Consistent code style throughout
-
----
-
-## 📋 Summary & Recommendations
-
-**Overall Assessment**: REQUEST CHANGES
-
-**Key Actions Required**:
-1. Fix SQL injection vulnerability in login.py
-2. Add null checks in validator.py
-...
-```
-
-## Architecture
-
-```
-┌─────────────────┐
-│  Claude Code    │
-│  /review-mr     │
-└────────┬────────┘
-         │
-         │ Uses MCP tools
-         │
-┌────────▼────────────────────┐
-│   GitLab MCP Server         │
-│  - get_projects()           │
-│  - merge_request_changes()  │
-│  - merge_request_file_diff()│
-└────────┬────────────────────┘
-         │
-         │ HTTPS
-         │
-┌────────▼────────┐
-│  GitLab API v4  │
-└─────────────────┘
-```
-
-## Prerequisites
-
-- **Python 3.10+**
-- **GitLab Account** with API access
-- **GitLab Personal Access Token** with `read_api` scope
-- **Claude Code** installed
-
-## Troubleshooting
-
-### Command not appearing
-
-**Problem**: `/review-gitlab-mr` doesn't show in `/help`
-
-**Solutions**:
-1. Verify plugin is installed: `ls ~/.claude/plugins/gitlab-mr-review/`
-2. Check environment variables are set: `echo $GITLAB_PERSONAL_ACCESS_TOKEN`
-3. Restart Claude Code completely (quit and relaunch)
-4. Check debug logs: `claude --debug`
-
-### "Error: Server not configured"
-
-**Problem**: Environment variables not accessible
-
-**Solutions**:
-1. Verify variables are set in your shell config
-2. Source your config: `source ~/.zshrc`
-3. Restart your terminal
-4. Restart Claude Code after setting variables
-
-### "Failed to connect to GitLab"
-
-**Problem**: Network or API URL issue
-
-**Solutions**:
-1. Check internet connection
-2. Verify `GITLAB_API_URL` ends with `/api/v4`
-3. For self-hosted: Ensure URL is accessible
-4. Test manually: `curl -H "PRIVATE-TOKEN: $GITLAB_PERSONAL_ACCESS_TOKEN" $GITLAB_API_URL/projects`
-
-### "No matching project found"
-
-**Problem**: Project name doesn't match
-
-**Solutions**:
-1. Try full project path: `namespace/project-name`
-2. Check you have access to the project in GitLab
-3. Verify the exact project name
-
-## Plugin Structure
-
-```
-plugins/gitlab-mr-review/
-├── .claude-plugin/
-│   └── plugin.json          # Plugin manifest
-├── .mcp.json                # MCP server configuration
-├── commands/
-│   └── review-gitlab-mr.md  # Slash command definition
-├── server/
-│   ├── gitlab.py            # MCP server implementation
-│   └── pyproject.toml       # Python dependencies
-└── README.md                # Plugin documentation
-```
-
-## Development
-
-### Running the MCP Server Standalone
-
-For development and testing:
-
-```bash
-# Install dependencies
-pip install -e .
-
-# Set environment variables
-export GITLAB_PERSONAL_ACCESS_TOKEN="your-token"
-export GITLAB_API_URL="https://gitlab.com/api/v4"
-
-# Run the server
 python gitlab.py
 ```
 
-### Making Changes
+### Example Workflow
 
-1. Modify files in `plugins/gitlab-mr-review/`
-2. Test changes by restarting Claude Code
-3. Submit pull requests to improve the plugin
+1. **List your projects**:
+   ```
+   Use the get_projects tool to see available projects
+   ```
 
-## Security Considerations
+2. **Analyze a merge request**:
+   ```
+   Use merge_request_changes(project_id=12345, merge_request_id=42)
+   ```
 
-- ✅ Never commit tokens to version control
-- ✅ Store tokens in environment variables only
-- ✅ Use minimal required scopes (`read_api`)
-- ✅ Set reasonable expiration dates for tokens
-- ✅ All communication uses HTTPS
-- ✅ No data is stored or transmitted outside GitLab API calls
+3. **Inspect specific file changes**:
+   ```
+   Use merge_request_file_diff(project_id=12345, merge_request_id=42, file_index=0)
+   ```
 
-## Limitations
+## Development
 
-- **Read-Only**: Plugin only reads data, no write operations
-- **Project Limit**: Retrieves up to 100 projects per request
-- **GitLab API v4**: Requires modern GitLab instances
-- **Token Scope**: Requires minimum `read_api` scope
+### Project Structure
+
+```
+gitlab-mr-mcp/
+├── gitlab.py              # Main MCP server implementation
+├── pyproject.toml         # Project metadata and dependencies
+├── LICENSE                # MIT License
+├── README.md              # This file
+└── plugins/
+    └── gitlab-mr-review/  # Plugin-specific configuration
+        ├── .mcp.json      # Claude Code plugin config
+        ├── server/
+        │   ├── gitlab.py  # Server implementation
+        │   └── pyproject.toml
+        └── examples/
+            └── claude_desktop_config.json
+```
+
+### Running Tests
+
+```bash
+# Install development dependencies
+pip install pytest pytest-asyncio httpx
+
+# Run tests
+pytest
+```
+
+### Code Quality
+
+The server implements:
+- Type hints for all functions
+- Async/await patterns for efficient I/O
+- Context managers for resource management
+- Comprehensive error handling
+- Structured logging to stderr
+
+## API Reference
+
+### GitLabClient Class
+
+Async HTTP client wrapper for GitLab API interactions.
+
+**Methods**:
+- `__aenter__()`: Initialize async HTTP client
+- `__aexit__()`: Clean up client connection
+- `request(url: str) -> dict[str, Any]`: Make authenticated API request
+
+**Configuration**:
+- `HTTP_TIMEOUT`: 30 seconds
+- `PROJECTS_PER_PAGE`: 100 projects
+
+## Troubleshooting
+
+### Common Issues
+
+**"GITLAB_API_URL environment variable is not set"**
+- Solution: Set the `GITLAB_API_URL` environment variable to your GitLab API endpoint
+
+**"GITLAB_PERSONAL_ACCESS_TOKEN environment variable is not set"**
+- Solution: Create a personal access token and set it in the environment
+
+**"GitLab API error 401: Unauthorized"**
+- Solution: Verify your personal access token is valid and has the `read_api` scope
+
+**"GitLab API error 404: Not Found"**
+- Solution: Check that the project ID and merge request ID are correct
+
+**"Failed to connect to GitLab"**
+- Solution: Verify your `GITLAB_API_URL` is correct and the GitLab instance is accessible
+
+### Debug Logging
+
+The server logs to stderr by default. To see detailed logs:
+
+```bash
+python gitlab.py 2> debug.log
+```
 
 ## Contributing
 
-Contributions are welcome! To improve this plugin:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes
-4. Test thoroughly with Claude Code
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details
-
-Copyright (c) 2025 Amir Masoud Ahmadi & Hossein Safari
-
-## Changelog
-
-### [0.1.0] - 2025-10-22
-
-- Initial release as Claude Code plugin
-- Slash command: `/review-gitlab-mr`
-- MCP tools: `get_projects`, `merge_request_changes`, `merge_request_file_diff`
-- Comprehensive code review with severity categorization
-- Parallel file analysis
-- Support for GitLab Cloud and self-hosted instances
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- Built with [FastMCP](https://github.com/jlowin/fastmcp)
-- Uses [httpx](https://www.python-httpx.org/) for async HTTP
-- Implements the [Model Context Protocol](https://modelcontextprotocol.io)
+- Built using [Model Context Protocol (MCP)](https://github.com/anthropics/mcp)
+- Powered by [FastMCP](https://github.com/jlowin/fastmcp)
+- GitLab API integration via [httpx](https://www.python-httpx.org/)
 
----
+## Links
 
-**Made for Claude Code** - Bringing AI-powered code review to GitLab merge requests 🚀
+- [GitLab API Documentation](https://docs.gitlab.com/ee/api/)
+- [MCP Documentation](https://modelcontextprotocol.io/)
+- [Claude Code Documentation](https://docs.claude.com/claude-code)
+
+## Support
+
+For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/yourusername/gitlab-mr-mcp).
