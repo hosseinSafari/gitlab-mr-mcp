@@ -123,6 +123,8 @@ if [ ! -f "$PYTHON_BIN" ]; then
     exit 1
 fi
 
+cd "$CLAUDE_PLUGIN_ROOT"
+echo "The plugin root is $CLAUDE_PLUGIN_ROOT"
 # Run the Python server with inherited environment variables
 exec "$PYTHON_BIN" "$@"
 
