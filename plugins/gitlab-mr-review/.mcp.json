@@ -1,6 +1,6 @@
 {
   "gitlab": {
-    "command": "./start.sh",
+    "command": "${CLAUDE_PLUGIN_ROOT}/start.sh",
     "args": [
       "gitlab.py"
     ],
