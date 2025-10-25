@@ -114,7 +114,7 @@ if [ ! -d "$VENV_PATH" ]; then
         exit 1
     }
 
-    echo "1. The plugin root is $CLAUDE_PLUGIN_ROOT"
+    echo "1. The plugin root is $CLAUDE_PLUGIN_ROOT" >&2
     echo "Installation complete!" >&2
 fi
 
@@ -124,7 +124,7 @@ if [ ! -f "$PYTHON_BIN" ]; then
     exit 1
 fi
 
-echo "2. The plugin root is $CLAUDE_PLUGIN_ROOT"
+echo "2. The plugin root is $CLAUDE_PLUGIN_ROOT" >&2
 # Run the Python server with inherited environment variables
 exec "$PYTHON_BIN" "$@"
 
