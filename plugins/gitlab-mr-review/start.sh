@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e  # Exit on error
 
-# Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 VENV_PATH="$SCRIPT_DIR/server/.venv"
 PYTHON_BIN="$VENV_PATH/bin/python"
