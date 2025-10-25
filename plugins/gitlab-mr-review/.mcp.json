@@ -2,7 +2,7 @@
   "gitlab": {
     "command": "${CLAUDE_PLUGIN_ROOT}/start.sh",
     "args": [
-      "$CLAUDE_PLUGIN_ROOT}/server/gitlab.py"
+      "${CLAUDE_PLUGIN_ROOT}/server/gitlab.py"
     ],
     "env": {
       "GITLAB_PERSONAL_ACCESS_TOKEN": "${GITLAB_PERSONAL_ACCESS_TOKEN}",
