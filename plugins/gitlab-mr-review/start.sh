@@ -21,7 +21,7 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "$VENV_PATH"
 
 # cd "$SCRIPT_DIR/server"
-pip install -e . >&2
+pip install -e $SCRIPT_DIR/server >&2
 
 conda deactivate
 echo "Setup complete." >&2
