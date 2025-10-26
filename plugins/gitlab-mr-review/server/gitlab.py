@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration constants
 HTTP_TIMEOUT = 30.0
-PROJECTS_PER_PAGE = 100
+PROJECTS_PER_PAGE = 1000
 
 
 def validate_config() -> tuple[str, str]:
