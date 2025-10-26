@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration constants
 HTTP_TIMEOUT = 30.0
-PROJECTS_PER_PAGE = 1000
+PROJECTS_PER_PAGE = 100
 
 
 def validate_config() -> tuple[str, str]:
@@ -88,32 +88,37 @@ except ValueError as e:
 
 @mcp.tool()
 async def get_projects() -> str:
-    """Get all accessible GitLab projects."""
+    """Get all accessible GitLab projects (aggregates results from first 3 pages)."""
     if not API_URL or not TOKEN:
         return "Error: Server not configured. Set GITLAB_API_URL and GITLAB_PERSONAL_ACCESS_TOKEN."
 
     try:
+        all_projects = []
+
         async with GitLabClient(API_URL, TOKEN) as client:
-            url = f"{API_URL}/projects?simple=true&per_page={PROJECTS_PER_PAGE}"
-            data = await client.request(url)
+            # Loop through the first 3 pages
+            for page in range(1, 4):
+                url = f"{API_URL}/projects?simple=true&per_page={PROJECTS_PER_PAGE}&page={page}"
+                data = await client.request(url)
 
-            # Handle response format variations
-            projects = data if isinstance(data, list) else data.get("projects", [])
+                # Handle different possible response formats
+                projects = data if isinstance(data, list) else data.get("projects", [])
+                if not projects:
+                    break  # No more pages
 
-            if not projects:
+                all_projects.extend(projects)
+
+            if not all_projects:
                 return "No projects found."
 
             lines = []
-            for p in projects:
+            for p in all_projects:
                 name = p.get("name") or p.get("name_with_namespace") or "Unnamed"
                 lines.append(f"{name}, {p.get('id')}")
 
             result = "\n".join(lines)
 
-            if len(projects) >= PROJECTS_PER_PAGE:
-                result += f"\n\nNote: Showing first {PROJECTS_PER_PAGE} projects."
-
-            logger.info(f"Retrieved {len(projects)} projects")
+            logger.info(f"Retrieved {len(all_projects)} projects (up to 3 pages)")
             return result
 
     except Exception as e:
