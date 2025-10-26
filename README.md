@@ -21,7 +21,7 @@ export GITLAB_PERSONAL_ACCESS_TOKEN="your-token-here"
 
 1. Type `/plugin` in Claude
 2. Select **Add marketplace**
-3. Paste `@https://github.com/hosseinSafari/gitlab-mr-mcp`
+3. Paste `https://github.com/hosseinSafari/gitlab-mr-mcp`
 4. Follow the prompts to complete the plugin installation
 
 ## Usage
