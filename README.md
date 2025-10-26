@@ -47,10 +47,11 @@ Use the command directly:
 
 ## Requirements
 
+- **Conda** (must be installed on your system)
 - Python 3.10+
 - Dependencies: `httpx`, `mcp`
 
-**Note:** You don't need to manually install requirements. After adding the marketplace plugin and installing it, all dependencies will be automatically installed.
+**Note:** You only need to install **Conda** manually. After installing the plugin from the marketplace, Conda will automatically set up Python 3.10+ and all required dependencies (`httpx`, `mcp`).
 
 ## License
 
