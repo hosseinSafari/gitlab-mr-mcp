@@ -24,6 +24,12 @@ export GITLAB_PERSONAL_ACCESS_TOKEN="your-token-here"
 3. Paste `https://github.com/hosseinSafari/gitlab-mr-mcp`
 4. Follow the prompts to complete the plugin installation
 
+**Note:**
+- Exit Claude completely and restart it
+- Run `/mcp` to verify the plugin is loaded
+
+**Note:** If you get an error when running `/mcp`, reconnect again. This happens because packages are still installing in the background.
+
 ## Usage
 
 ### Quick Command
