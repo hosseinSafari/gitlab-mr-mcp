@@ -9,7 +9,6 @@ This MCP server provides tools to interact with GitLab's API, enabling AI assist
 ## Setup
 
 ### 1. Export Environment Variables
-
 ```bash
 export GITLAB_API_URL="https://your_gitlab_uri/api/v4"
 export GITLAB_PERSONAL_ACCESS_TOKEN="your-token-here"
@@ -24,11 +23,20 @@ export GITLAB_PERSONAL_ACCESS_TOKEN="your-token-here"
 3. Paste `https://github.com/hosseinSafari/gitlab-mr-mcp`
 4. Follow the prompts to complete the plugin installation
 
-**Note:**
+### 3. Run Setup (Required - One Time Only)
+
+Before using the plugin, run the setup command in your terminal:
+```bash
+cd ~/.claude/plugins/gitlab-mr-mcp  # or wherever the plugin was installed
+./run.sh --setup
+```
+
+This will install `uv` (if not present) and set up the Python environment with all dependencies.
+
+### 4. Verify Installation
+
 - Exit Claude completely and restart it
 - Run `/mcp` to verify the plugin is loaded
-
-**Note:** If you get an error when running `/mcp`, reconnect again. This happens because packages are still installing in the background.
 
 ## Usage
 
@@ -53,11 +61,16 @@ Use the command directly:
 
 ## Requirements
 
-- **Conda** (must be installed on your system)
+- **uv** (will be auto-installed during setup, or install manually: https://github.com/astral-sh/uv)
 - Python 3.10+
 - Dependencies: `httpx`, `mcp`
 
-**Note:** You only need to install **Conda** manually. After installing the plugin from the marketplace, Conda will automatically set up Python 3.10+ and all required dependencies (`httpx`, `mcp`).
+## Troubleshooting
+
+If you see an error like "Virtual environment not found", run the setup command:
+```bash
+./run.sh --setup
+```
 
 ## License
 
