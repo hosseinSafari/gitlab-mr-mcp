@@ -10,7 +10,7 @@ This MCP server provides tools to interact with GitLab's API, enabling AI assist
 
 ### 1. Export Environment Variables
 ```bash
-export GITLAB_API_URL="https://your_gitlab_uri/api/v4"
+export GITLAB_API_URL="http[s]://your_gitlab_uri/api/v4"
 export GITLAB_PERSONAL_ACCESS_TOKEN="your-token-here"
 ```
 
@@ -28,7 +28,7 @@ export GITLAB_PERSONAL_ACCESS_TOKEN="your-token-here"
 Before using the plugin, run the setup command in your terminal:
 ```bash
 cd ~/.claude/plugins/marketplaces/gitlab-mr-review-marketplace/plugins/gitlab-mr-review  # or wherever the plugin was installed
-./run.sh --setup
+./start.sh --setup
 ```
 
 This will install `uv` (if not present) and set up the Python environment with all dependencies.
@@ -69,7 +69,7 @@ Use the command directly:
 
 If you see an error like "Virtual environment not found", run the setup command:
 ```bash
-./run.sh --setup
+./start.sh --setup
 ```
 
 ## License

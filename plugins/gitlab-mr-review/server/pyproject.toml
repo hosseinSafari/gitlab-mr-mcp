@@ -1,17 +1,13 @@
 [project]
-name = "gitlab"
+name = "gitlab-mr-mcp"
 version = "0.1.0"
-description = "A Gitlab MCP review merge request server"
-readme = "README.md"
-requires-python = ">=3.10"
 dependencies = [
-    "httpx>=0.28.1",
-    "mcp[cli]>=1.2.0",
+    "httpx",
+    "mcp",
 ]
+# Remove or comment out the readme line, OR set it to false:
+readme = false
 
 [build-system]
-requires = [ "hatchling",]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[project.scripts]
-gitlab = "gitlab:main"
