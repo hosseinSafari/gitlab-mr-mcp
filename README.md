@@ -20,14 +20,14 @@ export GITLAB_PERSONAL_ACCESS_TOKEN="your-token-here"
 
 1. Type `/plugin` in Claude
 2. Select **Add marketplace**
-3. Paste `https://github.com/hosseinSafari/gitlab-mr-mcp`
+3. Paste `https://github.com/Synaps-Squad/gitlab-mr-mcp`
 4. Follow the prompts to complete the plugin installation
 
 ### 3. Run Setup (Required - One Time Only)
 
 Before using the plugin, run the setup command in your terminal:
 ```bash
-cd ~/.claude/plugins/gitlab-mr-mcp  # or wherever the plugin was installed
+cd ~/.claude/plugins/marketplaces/gitlab-mr-review-marketplace/plugins/gitlab-mr-review  # or wherever the plugin was installed
 ./run.sh --setup
 ```
 
