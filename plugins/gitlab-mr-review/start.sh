@@ -20,6 +20,7 @@ do_setup() {
     uv venv "$VENV_PATH" --python 3.10
 
     echo "Installing dependencies..."
+    uv pip install httpx mcp --python "$VENV_PATH/bin/python"
     uv pip install -e "$SCRIPT_DIR/server" --python "$VENV_PATH/bin/python"
 
     echo ""
